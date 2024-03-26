@@ -309,18 +309,21 @@ int main(int argc, char **argv) {
     err = argp_parse(&argp, argc, argv, 0, NULL, NULL);
     if (err)
         return err;
-     if (inode_path) {
+     if (argc < 2) { // If no arguments provided, argc will be 1 (program name only)
+        fprintf(stderr, "usage: dirtop [-h] [-C] [-r MAXROWS] [-s {all,reads,writes,rbytes,wbytes}] [-p PID] -d ROOTDIRS [interval] [count]\n");
+        fprintf(stderr, "dirtop: error: the following arguments are required: -d/--root-directories\n");
+        return 1; // Exit with an error code
+    }
+    
+    if (inode_path) {
         struct stat statbuf;
         if (stat(inode_path, &statbuf) == 0) {
             printf("Considering %s with inode_id %lu\n", inode_path, (unsigned long)statbuf.st_ino);
-            
-            printf("Tracing... Output every %d secs. Hit Ctrl-C to end\n", interval);
         } else {
             warn("Could not get stats for the file or directory: %s\n", inode_path);
             return 1; 
         }
     }
-
 
     libbpf_set_strict_mode(LIBBPF_STRICT_ALL);
     libbpf_set_print(libbpf_print_fn);
