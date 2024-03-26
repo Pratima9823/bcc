@@ -50,6 +50,8 @@ APPS = \
 	cachestat \
 	capable \
 	cpudist \
+        dirtop \
+        dcstat \
 	cpufreq \
 	drsnoop \
 	execsnoop \
