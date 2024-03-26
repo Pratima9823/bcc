@@ -30,7 +30,7 @@ enum SORT {
 };
 
 static volatile sig_atomic_t exiting = 0;
-static char *directory_paths = NULL; // Variable to store directory paths from the command line
+static char *directory_paths = NULL; 
 static pid_t target_pid = 0;
 static bool clear_screen = true;
 static bool regular_file_only = true;
@@ -101,7 +101,7 @@ static error_t parse_arg(int key, char *arg, struct argp_state *state) {
             }
             break;
     case 'f':
-            inode_path = strdup(arg); // Allocate and copy the path
+            inode_path = strdup(arg); 
             if (!inode_path) {
                 warn("Failed to allocate memory for the inode path\n");
                 argp_usage(state);
@@ -215,7 +215,7 @@ static int print_stat(struct dirtop_bpf *obj) {
         fclose(f);
     }
 
-    // Corrected header to match expected output
+    
     printf("%-7s %-16s %-6s %-6s %s\n", "READS", "WRITES", "R_Kb", "W_Kb", "PATH");
 
     while (1) {
@@ -239,7 +239,7 @@ static int print_stat(struct dirtop_bpf *obj) {
     qsort(values, rows, sizeof(struct file_stat), sort_column);
     rows = rows < output_rows ? rows : output_rows;
     for (i = 0; i < rows; i++) {
-        // Corrected print statement to use the proper format specifiers
+        
         printf("%-7llu %-16llu %-6llu %-6llu %s\n",
                values[i].reads, values[i].writes,
                values[i].read_bytes / 1024, values[i].write_bytes / 1024,
@@ -270,7 +270,7 @@ static int print_stat(struct dirtop_bpf *obj) {
 }
 
 void populate_inode_map(struct dirtop_bpf *obj, const char *root_directories) {
-    char *dirs = strdup(root_directories); // Make a writable copy
+    char *dirs = strdup(root_directories); 
     if (!dirs) {
         perror("strdup failed");
         return;
@@ -280,8 +280,8 @@ void populate_inode_map(struct dirtop_bpf *obj, const char *root_directories) {
     struct stat statbuf;
     while (dir) {
         if (stat(dir, &statbuf) == 0) {
-            __u32 key = statbuf.st_ino; // Inode number as the key
-            __u64 value = 1; // Dummy value
+            __u32 key = statbuf.st_ino; 
+            __u64 value = 1; 
             if (bpf_map_update_elem(bpf_map__fd(obj->maps.inode_filter_map), &key, &value, BPF_ANY) != 0) {
                 warn("Failed to insert inode number into the map\n");
             }
@@ -305,7 +305,7 @@ int main(int argc, char **argv) {
     struct dirtop_bpf *obj;
     int err;
 
-    // Parse command-line arguments
+    
     err = argp_parse(&argp, argc, argv, 0, NULL, NULL);
     if (err)
         return err;
@@ -313,11 +313,11 @@ int main(int argc, char **argv) {
         struct stat statbuf;
         if (stat(inode_path, &statbuf) == 0) {
             printf("Considering %s with inode_id %lu\n", inode_path, (unsigned long)statbuf.st_ino);
-            // Add your additional print statement here
+            
             printf("Tracing... Output every %d secs. Hit Ctrl-C to end\n", interval);
         } else {
             warn("Could not get stats for the file or directory: %s\n", inode_path);
-            return 1; // or handle the error as appropriate
+            return 1; 
         }
     }
 
@@ -325,37 +325,37 @@ int main(int argc, char **argv) {
     libbpf_set_strict_mode(LIBBPF_STRICT_ALL);
     libbpf_set_print(libbpf_print_fn);
 
-    // Open and load BPF object
+    
     obj = dirtop_bpf__open_and_load();
     if (!obj) {
         warn("failed to open and load BPF object\n");
         return 1;
     }
 
-    // Optional: Update BPF program configuration based on command-line arguments
+    
     if (target_pid)
         obj->rodata->target_pid = target_pid;
 
-    // Attach BPF program
+    
     err = dirtop_bpf__attach(obj);
     if (err) {
         warn("failed to attach BPF programs: %d\n", err);
         goto cleanup;
     }
 
-    // Handle program exit signal
+    
     if (signal(SIGINT, sig_int) == SIG_ERR) {
         warn("can't set signal handler: %s\n", strerror(errno));
         err = 1;
         goto cleanup;
     }
 
-    // Populate inode map with directory inodes if paths are provided
+    
     if (directory_paths) {
         populate_inode_map(obj, directory_paths);
     }
 
-    // Main loop: print stats and handle user inputs
+    
     while (!exiting) {
         sleep(interval);
 
@@ -369,15 +369,15 @@ int main(int argc, char **argv) {
 
         count--;
                 if (exiting || !count)
-                        goto cleanup; // Exit after count iterations
+                        goto cleanup; 
     }
 
 cleanup:
     if (directory_paths) {
-        free(directory_paths); // Clean up allocated directory paths
+        free(directory_paths); 
     }
     dirtop_bpf__destroy(obj);
-    cleanup_core_btf(&open_opts); // Free BPF resources
+    cleanup_core_btf(&open_opts); 
     return err != 0;
 }
 
