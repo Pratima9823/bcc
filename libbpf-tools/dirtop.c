@@ -30,7 +30,7 @@ enum SORT {
 };
 
 static volatile sig_atomic_t exiting = 0;
-static char *directory_paths = NULL; 
+static char *directory_paths = NULL;
 static pid_t target_pid = 0;
 static bool clear_screen = true;
 static bool regular_file_only = true;
@@ -101,7 +101,7 @@ static error_t parse_arg(int key, char *arg, struct argp_state *state) {
             }
             break;
     case 'f':
-            inode_path = strdup(arg); 
+            inode_path = strdup(arg);
             if (!inode_path) {
                 warn("Failed to allocate memory for the inode path\n");
                 argp_usage(state);
@@ -215,7 +215,7 @@ static int print_stat(struct dirtop_bpf *obj) {
         fclose(f);
     }
 
-    
+
     printf("%-7s %-16s %-6s %-6s %s\n", "READS", "WRITES", "R_Kb", "W_Kb", "PATH");
 
     while (1) {
@@ -239,7 +239,7 @@ static int print_stat(struct dirtop_bpf *obj) {
     qsort(values, rows, sizeof(struct file_stat), sort_column);
     rows = rows < output_rows ? rows : output_rows;
     for (i = 0; i < rows; i++) {
-        
+
         printf("%-7llu %-16llu %-6llu %-6llu %s\n",
                values[i].reads, values[i].writes,
                values[i].read_bytes / 1024, values[i].write_bytes / 1024,
@@ -270,7 +270,7 @@ static int print_stat(struct dirtop_bpf *obj) {
 }
 
 void populate_inode_map(struct dirtop_bpf *obj, const char *root_directories) {
-    char *dirs = strdup(root_directories); 
+    char *dirs = strdup(root_directories);
     if (!dirs) {
         perror("strdup failed");
         return;
@@ -280,8 +280,11 @@ void populate_inode_map(struct dirtop_bpf *obj, const char *root_directories) {
     struct stat statbuf;
     while (dir) {
         if (stat(dir, &statbuf) == 0) {
-            __u32 key = statbuf.st_ino; 
-            __u64 value = 1; 
+            // Corrected to use a single declaration for key and value
+            // Assuming the map's key is __u64 and the value is __u8
+            __u64 key = (__u64)statbuf.st_ino; // Cast to __u64 to match expected type
+            __u8 value = 1; // Value indicating presence, typically a boolean flag
+
             if (bpf_map_update_elem(bpf_map__fd(obj->maps.inode_filter_map), &key, &value, BPF_ANY) != 0) {
                 warn("Failed to insert inode number into the map\n");
             }
@@ -294,6 +297,7 @@ void populate_inode_map(struct dirtop_bpf *obj, const char *root_directories) {
     free(dirs);
 }
 
+
 int main(int argc, char **argv) {
     LIBBPF_OPTS(bpf_object_open_opts, open_opts);
     static const struct argp argp = {
@@ -305,7 +309,7 @@ int main(int argc, char **argv) {
     struct dirtop_bpf *obj;
     int err;
 
-    
+
     err = argp_parse(&argp, argc, argv, 0, NULL, NULL);
     if (err)
         return err;
@@ -314,51 +318,51 @@ int main(int argc, char **argv) {
         fprintf(stderr, "dirtop: error: the following arguments are required: -d/--root-directories\n");
         return 1; // Exit with an error code
     }
-    
+
     if (inode_path) {
         struct stat statbuf;
         if (stat(inode_path, &statbuf) == 0) {
             printf("Considering %s with inode_id %lu\n", inode_path, (unsigned long)statbuf.st_ino);
         } else {
             warn("Could not get stats for the file or directory: %s\n", inode_path);
-            return 1; 
+            return 1;
         }
     }
 
     libbpf_set_strict_mode(LIBBPF_STRICT_ALL);
     libbpf_set_print(libbpf_print_fn);
 
-    
+
     obj = dirtop_bpf__open_and_load();
     if (!obj) {
         warn("failed to open and load BPF object\n");
         return 1;
     }
 
-    
+
     if (target_pid)
         obj->rodata->target_pid = target_pid;
 
-    
+
     err = dirtop_bpf__attach(obj);
     if (err) {
         warn("failed to attach BPF programs: %d\n", err);
         goto cleanup;
     }
 
-    
+
     if (signal(SIGINT, sig_int) == SIG_ERR) {
         warn("can't set signal handler: %s\n", strerror(errno));
         err = 1;
         goto cleanup;
     }
 
-    
+
     if (directory_paths) {
         populate_inode_map(obj, directory_paths);
     }
 
-    
+
     while (!exiting) {
         sleep(interval);
 
@@ -372,21 +376,16 @@ int main(int argc, char **argv) {
 
         count--;
                 if (exiting || !count)
-                        goto cleanup; 
+                        goto cleanup;
     }
 
 cleanup:
     if (directory_paths) {
-        free(directory_paths); 
+        free(directory_paths);
     }
     dirtop_bpf__destroy(obj);
-    cleanup_core_btf(&open_opts); 
+    cleanup_core_btf(&open_opts);
     return err != 0;
 }
-
-
-
-
-
 
 
