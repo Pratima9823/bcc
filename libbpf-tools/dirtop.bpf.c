@@ -2,12 +2,12 @@
 #include <bpf/bpf_helpers.h>
 #include <bpf/bpf_core_read.h>
 #include <bpf/bpf_tracing.h>
-#include "dirtop.h" 
+#include "dirtop.h"
 
 #define MAX_ENTRIES 10240
 #define INODES_NUMBER 100
 
-extern const volatile __u32 target_pid; 
+extern const volatile __u32 target_pid;
 
 struct {
     __uint(type, BPF_MAP_TYPE_HASH);
@@ -23,6 +23,8 @@ struct {
     __type(value, __u8);
 } inode_filter_map SEC(".maps");
 
+// Function prototype declaration
+void get_file_path(struct file *file, char *buf, size_t buf_size);
 
 static int probe_entry(struct pt_regs *ctx, struct file *file, size_t count, enum op op) {
     __u64 pid_tgid = bpf_get_current_pid_tgid();
@@ -40,7 +42,7 @@ static int probe_entry(struct pt_regs *ctx, struct file *file, size_t count, enu
     valuep = bpf_map_lookup_elem(&entries, &key);
     if (!valuep) {
         struct file_stat zero_value = {};
-        get_file_path(file, zero_value.filename, PATH_MAX);
+        get_file_path(file, zero_value.filename, PATH_MAX); // Corrected call
         bpf_map_update_elem(&entries, &key, &zero_value, BPF_ANY);
         valuep = bpf_map_lookup_elem(&entries, &key);
     }
@@ -56,14 +58,13 @@ static int probe_entry(struct pt_regs *ctx, struct file *file, size_t count, enu
         valuep->write_bytes += count;
     }
 
-    get_file_path(file, valuep->filename, PATH_MAX);
+    get_file_path(file, valuep->filename, PATH_MAX); // Corrected call
 
-    
     bpf_map_update_elem(&entries, &key, valuep, BPF_ANY);
     return 0;
 }
 
-static void get_file_path(struct file *file, char *buf, size_t buf_size) {
+void get_file_path(struct file *file, char *buf, size_t buf_size) {
     if (buf_size == 0) {
         return;
     }
@@ -105,3 +106,4 @@ int BPF_KPROBE(vfs_write_entry, struct file *file, const char *buf, size_t count
 }
 
 char LICENSE[] SEC("license") = "Dual BSD/GPL";
+
