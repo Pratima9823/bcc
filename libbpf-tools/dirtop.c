@@ -171,7 +171,8 @@ static int libbpf_print_fn(enum libbpf_print_level level, const char *format, va
 
 static void sig_int(int signo)
 {
-        exiting = 1;
+	exiting = 1;
+	
 }
 
 static int sort_column(const void *obj1, const void *obj2)
@@ -280,10 +281,8 @@ void populate_inode_map(struct dirtop_bpf *obj, const char *root_directories) {
     struct stat statbuf;
     while (dir) {
         if (stat(dir, &statbuf) == 0) {
-            // Corrected to use a single declaration for key and value
-            // Assuming the map's key is __u64 and the value is __u8
-            __u64 key = (__u64)statbuf.st_ino; // Cast to __u64 to match expected type
-            __u8 value = 1; // Value indicating presence, typically a boolean flag
+            __u64 key = (__u64)statbuf.st_ino;
+            __u8 value = 1;
 
             if (bpf_map_update_elem(bpf_map__fd(obj->maps.inode_filter_map), &key, &value, BPF_ANY) != 0) {
                 warn("Failed to insert inode number into the map\n");
@@ -378,7 +377,6 @@ int main(int argc, char **argv) {
                 if (exiting || !count)
                         goto cleanup;
     }
-
 cleanup:
     if (directory_paths) {
         free(directory_paths);
