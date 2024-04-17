@@ -9,24 +9,24 @@
 
 
 enum op {
-        READ,
-        WRITE,
+	READ,
+	WRITE,
 };
 
 struct file_id {
-        __u64 inode;
+	__u64 inode;
 };
 
 struct file_stat {
-        __u64 reads;
-        __u64 read_bytes;
-        __u64 writes;
-        __u64 write_bytes;
-        __u32 pid;
+	__u64 reads;
+	__u64 read_bytes;
+	__u64 writes;
+	__u64 write_bytes;
+	__u32 pid;
 
-        char filename[PATH_MAX];
-        char comm[TASK_COMM_LEN];
-        char type;
+	char filename[PATH_MAX];
+	char comm[TASK_COMM_LEN];
+	char type;
 };
 
 #endif /* __DIRTOP_H */
